@@ -67,6 +67,8 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             // Flags (works on both rules and existing regions)
             case "flag":
                 return cmdFlag(sender, args);
+            case "block-entry":
+                return cmdBlockEntry(sender, args);
             
             // Region management
             case "clearregions":
@@ -120,6 +122,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         sender.sendMessage("");
         sender.sendMessage("§e§lFlags & Regions:");
         sender.sendMessage("§e/sg flag <pattern> <flag> <value> §7- Set flags on rules & regions");
+        sender.sendMessage("§e/sg block-entry <pattern> [true|false] §7- Block/allow player entry to structure regions");
         sender.sendMessage("§e/sg addowner <pattern> <player|g:group> §7- Add region owner");
         sender.sendMessage("§e/sg addmember <pattern> <player|g:group> §7- Add region member");
         sender.sendMessage("§e/sg clearregions <pattern> [world] §7- Remove WorldGuard regions");
@@ -793,6 +796,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             sender.sendMessage(status + " §e" + rule.pattern);
             sender.sendMessage("  §7Radius: §f" + rule.radius + " §7| Y: §f" + rule.yMin + "§7 to §f" + rule.yMax);
             
+            if (rule.blockEntry) {
+                sender.sendMessage("  §7Entry: §cBLOCKED");
+            }
+            
             if (!rule.flags.isEmpty()) {
                 StringBuilder flagStr = new StringBuilder();
                 int count = 0;
@@ -873,6 +880,73 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
         } else {
             sender.sendMessage("§cNo matching rule or regions found for: " + pattern);
         }
+        
+        return true;
+    }
+    
+    private boolean cmdBlockEntry(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("structureguard.admin")) {
+            sender.sendMessage("§cNo permission.");
+            return true;
+        }
+        
+        if (args.length < 2) {
+            sender.sendMessage("§cUsage: /sg block-entry <pattern> [true|false]");
+            sender.sendMessage("§7Prevents players from entering structure regions.");
+            sender.sendMessage("§7Examples:");
+            sender.sendMessage("§7  /sg block-entry minecraft:fortress");
+            sender.sendMessage("§7  /sg block-entry minecraft:bastion_remnant true");
+            sender.sendMessage("§7  /sg block-entry minecraft:fortress false §8(re-allow entry)");
+            return true;
+        }
+        
+        String pattern = args[1].toLowerCase();
+        
+        // Default to enabling block-entry if no value specified
+        boolean block = true;
+        if (args.length >= 3) {
+            String val = args[2].toLowerCase();
+            if (val.equals("false") || val.equals("off") || val.equals("no")) {
+                block = false;
+            } else if (!val.equals("true") && !val.equals("on") && !val.equals("yes")) {
+                sender.sendMessage("§cInvalid value. Use true or false.");
+                return true;
+            }
+        }
+        
+        ConfigManager.ProtectionRule rule = plugin.getConfigManager().getProtectionRule(pattern);
+        if (rule == null) {
+            sender.sendMessage("§cNo rule found for: " + pattern);
+            sender.sendMessage("§7Use §e/sg protect " + pattern + "§7 first to create a protection rule.");
+            return true;
+        }
+        
+        rule.blockEntry = block;
+        if (block) {
+            rule.flags.put("entry", "deny");
+        } else {
+            // Remove the entry restriction entirely; restores WorldGuard's default (allow) behaviour
+            rule.flags.remove("entry");
+        }
+        plugin.getConfigManager().addProtectionRule(rule);
+        
+        // Also update existing WorldGuard regions (none/null clears the flag, restoring default)
+        int updatedRegions = 0;
+        if (plugin.getRegionManager().isWorldGuardAvailable()) {
+            updatedRegions = plugin.getRegionManager().setFlag(pattern, "entry", block ? "deny" : "none");
+        }
+        
+        if (block) {
+            sender.sendMessage("§a✓ Entry BLOCKED for: §e" + pattern);
+            sender.sendMessage("§7Players will be denied entry to all matching structure regions.");
+        } else {
+            sender.sendMessage("§a✓ Entry allowed for: §e" + pattern);
+            sender.sendMessage("§7Entry restriction removed (WorldGuard default: allow).");
+        }
+        if (updatedRegions > 0) {
+            sender.sendMessage("§7Updated §e" + updatedRegions + "§7 existing regions.");
+        }
+        sender.sendMessage("§7Future regions will automatically inherit this setting.");
         
         return true;
     }
@@ -1303,7 +1377,7 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
             completions.addAll(Arrays.asList(
                 "find", "listall", "info",
                 "protect", "unprotect", "enable", "disable", "rules",
-                "flag", "clearregions", "resetworld", "addowner", "removeowner", "addmember", "removemember",
+                "flag", "block-entry", "clearregions", "resetworld", "addowner", "removeowner", "addmember", "removemember",
                 "list", "status", "reload", "debug"
             ));
         } else if (args.length == 2) {
@@ -1330,6 +1404,10 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                     break;
                 case "unprotect":
                 case "disable":
+                    completions.addAll(plugin.getConfigManager().getProtectionRules().keySet());
+                    break;
+                case "block-entry":
+                    completions.add("*");
                     completions.addAll(plugin.getConfigManager().getProtectionRules().keySet());
                     break;
                 case "resetworld":
@@ -1361,6 +1439,9 @@ public class CommandHandler implements CommandExecutor, TabCompleter {
                     break;
                 case "unprotect":
                     completions.add("--clear");
+                    break;
+                case "block-entry":
+                    completions.addAll(Arrays.asList("true", "false"));
                     break;
                 case "flag":
                     // Get all available WorldGuard flags dynamically (includes Extra Flags if installed)
