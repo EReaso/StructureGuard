@@ -1,16 +1,14 @@
-name: Build
+name: Release
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [ published ]
 
 jobs:
-  build:
+  build-and-upload:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -28,9 +26,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload JAR to release
+        uses: softprops/action-gh-release@v2
         with:
-          name: StructureGuard
-          path: build/libs/StructureGuard.jar
-          retention-days: 90
+          files: build/libs/StructureGuard.jar
