@@ -84,6 +84,13 @@ public class ConfigManager {
                         }
                     }
                     
+                    boolean blockEntry = ruleSection.getBoolean("block-entry", false);
+                    
+                    // block-entry: true automatically enforces entry: deny
+                    if (blockEntry) {
+                        flags.put("entry", "deny");
+                    }
+                    
                     ProtectionRule rule = new ProtectionRule();
                     rule.pattern = pattern;
                     rule.enabled = enabled;
@@ -91,6 +98,7 @@ public class ConfigManager {
                     rule.yMin = yMin;
                     rule.yMax = yMax;
                     rule.priority = priority;
+                    rule.blockEntry = blockEntry;
                     rule.flags = flags;
                     
                     protectionRules.put(pattern, rule);
@@ -167,6 +175,12 @@ public class ConfigManager {
         config.set(path + ".y-min", rule.yMin);
         config.set(path + ".y-max", rule.yMax);
         config.set(path + ".priority", rule.priority);
+        config.set(path + ".block-entry", rule.blockEntry);
+        
+        // Ensure flags map is consistent with block-entry setting
+        if (rule.blockEntry) {
+            rule.flags.put("entry", "deny");
+        }
         
         // Save flags
         for (Map.Entry<String, String> flag : rule.flags.entrySet()) {
@@ -330,6 +344,7 @@ public class ConfigManager {
         public int yMin = -64;
         public int yMax = 320;
         public int priority = 10;
+        public boolean blockEntry = false;
         public Map<String, String> flags = new HashMap<>();
         
         public ProtectionRule() {

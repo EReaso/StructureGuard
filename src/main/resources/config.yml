@@ -46,6 +46,7 @@ default-flags:
 #     y-min: -64             # Minimum Y level
 #     y-max: 320             # Maximum Y level
 #     priority: 10           # Higher = takes precedence
+#     block-entry: false     # Set to true to deny all player entry (use /sg block-entry <pattern>)
 #     flags:                 # WorldGuard flags for this type
 #       block-break: deny
 #
@@ -65,6 +66,16 @@ default-flags:
 #     flags:
 #       block-break: deny
 #       pvp: deny
+#
+# To block all entry to a structure (e.g., fortress, bastion):
+#   "minecraft:fortress":
+#     enabled: true
+#     radius: 48
+#     block-entry: true
+#   "minecraft:bastion_remnant":
+#     enabled: true
+#     radius: 48
+#     block-entry: true
 
 protected-structures:
   # Add rules with /sg protect <pattern>
