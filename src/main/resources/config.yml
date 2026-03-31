@@ -81,6 +81,28 @@ protected-structures:
   # Add rules with /sg protect <pattern>
 
 # =============================================================================
+# ORE / BLOCK PROTECTION
+# =============================================================================
+# List of block types that players are never allowed to break.
+# Use Bukkit Material names (case-insensitive).
+# This is enforced globally, regardless of WorldGuard regions.
+#
+# Example: prevent all players from mining Ancient Debris
+# blocked-blocks:
+#   - ANCIENT_DEBRIS
+#
+# Other common examples:
+#   - DIAMOND_ORE
+#   - DEEPSLATE_DIAMOND_ORE
+#   - EMERALD_ORE
+#   - DEEPSLATE_EMERALD_ORE
+blocked-blocks:
+  # - ANCIENT_DEBRIS
+
+# Message shown when a player tries to break a blocked block
+blocked-block-message: "&cYou cannot break this block here!"
+
+# =============================================================================
 # PERMISSIONS
 # =============================================================================
 # structureguard.admin      - All commands

@@ -45,6 +45,9 @@ public class StructureGuardPlugin extends JavaPlugin {
             getLogger().warning("WorldGuard not found! On-demand protection disabled.");
         }
         
+        // Register ore/block protection listener (works independently of WorldGuard)
+        getServer().getPluginManager().registerEvents(new OreProtectionListener(this), this);
+        
         // Register commands
         CommandHandler commandHandler = new CommandHandler(this);
         getCommand("structureguard").setExecutor(commandHandler);

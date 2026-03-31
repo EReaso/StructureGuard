@@ -51,6 +51,7 @@ permissions:
       structureguard.resetdb: true
       structureguard.reload: true
       structureguard.teleport: true
+      structureguard.bypass.oreprotection: true
   
   # Basic read-only access for helpers
   structureguard.helper:
@@ -127,4 +128,7 @@ permissions:
     default: op
   structureguard.teleport:
     description: Use clickable teleport links
+    default: op
+  structureguard.bypass.oreprotection:
+    description: Bypass the blocked-blocks ore protection
     default: op
