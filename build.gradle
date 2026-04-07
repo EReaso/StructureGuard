@@ -26,6 +26,21 @@ dependencies {
 	compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
 	compileOnly 'com.sk89q.worldguard:worldguard-bukkit:7.0.15'
 	implementation 'org.xerial:sqlite-jdbc:3.46.0.0'
+
+	testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.108.0'
+	testImplementation 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+	testImplementation 'com.sk89q.worldguard:worldguard-bukkit:7.0.15'
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+	testImplementation 'org.mockito:mockito-core:5.14.2'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
+	testLogging {
+		events 'passed', 'skipped', 'failed'
+		exceptionFormat 'full'
+	}
 }
 
 jar {

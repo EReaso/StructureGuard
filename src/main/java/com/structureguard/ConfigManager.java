@@ -1,5 +1,6 @@
 package com.structureguard;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -8,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 
 /**
  * Manages plugin configuration including protected structure rules.
@@ -22,6 +24,8 @@ public class ConfigManager {
     private boolean processExistingChunks;
     private Map<String, String> defaultFlags;
     private Set<String> disabledWorlds;
+    private Set<String> blockedBlocks;
+    private String blockedBlockMessage;
     
     // Protection rules - pattern -> rule
     private final Map<String, ProtectionRule> protectionRules = new HashMap<>();
@@ -59,6 +63,23 @@ public class ConfigManager {
         }
         // Note: WorldGuard already denies block-break/place by default in regions
         // so we don't need to set them unless the user wants to override
+        
+        // Load blocked blocks (ore protection)
+        blockedBlocks = new HashSet<>();
+        List<String> blockedList = config.getStringList("blocked-blocks");
+        for (String block : blockedList) {
+            String materialName = block.toUpperCase();
+            if (Material.matchMaterial(materialName) != null) {
+                blockedBlocks.add(materialName);
+            } else {
+                plugin.getLogger().warning("Invalid material in blocked-blocks: '" + block + "' - skipping.");
+            }
+        }
+        blockedBlockMessage = config.getString("blocked-block-message",
+                "&cYou cannot break this block here!");
+        if (!blockedBlocks.isEmpty()) {
+            plugin.getLogger().info("Blocking " + blockedBlocks.size() + " block type(s): " + String.join(", ", blockedBlocks));
+        }
         
         // Load protected structures
         protectionRules.clear();
@@ -308,6 +329,21 @@ public class ConfigManager {
     
     public Map<String, String> getDefaultFlags() {
         return new HashMap<>(defaultFlags);
+    }
+    
+    /**
+     * Get the set of block types that are blocked from being broken.
+     * Block names are stored in uppercase (matching Material.name()).
+     */
+    public Set<String> getBlockedBlocks() {
+        return Collections.unmodifiableSet(blockedBlocks);
+    }
+    
+    /**
+     * Get the message sent when a player tries to break a blocked block.
+     */
+    public String getBlockedBlockMessage() {
+        return blockedBlockMessage;
     }
     
     /**

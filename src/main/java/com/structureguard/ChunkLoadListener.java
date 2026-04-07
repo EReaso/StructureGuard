@@ -76,6 +76,8 @@ public class ChunkLoadListener implements Listener {
         this.plugin = plugin;
         // Load scanned chunks cache on startup
         loadCacheSync();
+        // Queue any already-loaded chunks that haven't been scanned yet
+        scheduleStartupScan();
     }
     
     /**
@@ -97,6 +99,45 @@ public class ChunkLoadListener implements Listener {
         cacheLoaded = true;
     }
     
+    /**
+     * Queue already-loaded chunks (e.g. spawn chunks) for async structure scanning.
+     * These chunks were loaded before the listener registered, so they will never
+     * trigger {@link #onChunkLoad}.  We run the scan one tick later so that all
+     * components are fully initialised before work begins.
+     */
+    private void scheduleStartupScan() {
+        if (!plugin.getConfigManager().hasEnabledProtectionRules()) {
+            return;
+        }
+
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            int queued = 0;
+            for (World world : plugin.getServer().getWorlds()) {
+                String worldName = world.getName();
+                if (plugin.getConfigManager().isWorldDisabled(worldName)) {
+                    continue;
+                }
+
+                for (Chunk chunk : world.getLoadedChunks()) {
+                    long chunkKey = packChunkCoords(chunk.getX(), chunk.getZ());
+                    if (!isChunkScannedCached(worldName, chunkKey)) {
+                        ChunkTask task = new ChunkTask(world, chunk.getX(), chunk.getZ(), worldName, chunkKey);
+                        if (activeTaskCount.get() < MAX_CONCURRENT_TASKS) {
+                            startAsyncTask(task);
+                        } else {
+                            pendingChunks.offer(task);
+                        }
+                        queued++;
+                    }
+                }
+            }
+
+            if (queued > 0) {
+                plugin.getLogger().info("Queued " + queued + " already-loaded chunk(s) for structure scanning.");
+            }
+        }, 1L);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChunkLoad(ChunkLoadEvent event) {
         // Only process newly generated chunks, or all if config says so
